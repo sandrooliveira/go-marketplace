@@ -24,21 +24,41 @@ interface CartContext {
 }
 
 const CartContext = createContext<CartContext | null>(null);
-
 const CartProvider: React.FC = ({ children }) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     async function loadProducts(): Promise<void> {
-      // TODO LOAD ITEMS FROM ASYNC STORAGE
+      const productsStored = await AsyncStorage.getItem(
+        '@GoMarketplace:products',
+      );
+
+      if (productsStored) {
+        setProducts([...JSON.parse(productsStored)]);
+      }
     }
 
     loadProducts();
   }, []);
 
-  const addToCart = useCallback(async product => {
-    // TODO ADD A NEW ITEM TO THE CART
-  }, []);
+  const addToCart = useCallback(
+    async product => {
+      const incrementQuantity = (p: Product): Product => {
+        return p.id === product.id ? { ...p, quantity: p.quantity + 1 } : p;
+      };
+
+      const productsUpdated = products.some(p => p.id === product.id)
+        ? products.map(incrementQuantity)
+        : [...products, { ...product, quantity: 1 }];
+
+      await AsyncStorage.setItem(
+        '@GoMarketplace:products',
+        JSON.stringify(products),
+      );
+      setProducts(productsUpdated);
+    },
+    [products],
+  );
 
   const increment = useCallback(async id => {
     // TODO INCREMENTS A PRODUCT QUANTITY IN THE CART
